@@ -15,4 +15,8 @@ $ cd neural-network
 $ python churn_nn.py
 ```
 
-4. (Preliminary experiments suggest the EC2 is twice as fast as laptop.)
+4. (Preliminary experiment suggest the EC2 is twice as fast as laptop.  When we have 128 observations per batch this increases to 3x faster.  With 256 observations per batch the EC2 is 5-6x faster.  9x faster with 512 observations per batch.  15x faster with 1024 observations per batch, 16x faster with 2048 observations per batch.)
+5. To see GPU utilization: (In our case it looks like it's using 80% of the (single) CPU and 90% of the GPU.)
+```
+nvidia-smi
+```
