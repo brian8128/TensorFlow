@@ -3,9 +3,9 @@ import tensorflow as tf
 
 # http://tensorflow.org/tutorials/mnist/pros/index.html
 
-L1_SIZE = 24
-L2_SIZE = 48
-L3_SIZE = 700
+L1_SIZE = 32
+L2_SIZE = 64
+L3_SIZE = 1024
 
 mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 sess = tf.InteractiveSession()
@@ -73,7 +73,7 @@ train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
 correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(y_,1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 sess.run(tf.initialize_all_variables())
-for i in range(5000):
+for i in range(1000):
   batch = mnist.train.next_batch(50)
   if i%100 == 0:
     train_accuracy = accuracy.eval(feed_dict={
@@ -81,7 +81,22 @@ for i in range(5000):
     print "step %d, training accuracy %g"%(i, train_accuracy)
   train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
 
-# After cutting the number of nodes in half and the number of iterations by
-# a factor of 10 we managed to get test accuracy of 96%
-print "test accuracy %g"%accuracy.eval(feed_dict={
-    x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0})
+test_size = len(mnist.test.images)
+lower = 0
+upper = 256
+accuracy_ = []
+sizes = []
+
+while upper < test_size + 256:
+  u = min(upper, test_size)
+  accuracy_.append(accuracy.eval(feed_dict={
+    x: mnist.test.images[lower: u], y_: mnist.test.labels[lower: u], keep_prob: 1.0}))
+  sizes.append(u-lower)
+  lower += 256
+  upper += 256
+
+total = 0
+for a, s in zip(accuracy_, sizes):
+  total += a * s
+
+print "test accuracy %g"%(total / float(len(mnist.test.images)))
