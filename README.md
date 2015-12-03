@@ -4,7 +4,7 @@
 Roughly following this blog
 http://erikbern.com/2015/11/12/installing-tensorflow-on-aws/
 
-1. Launch an EC2 instance.  Probably use the smaller of the ones with graphic cards.  Recommend to use spot instances since they're cheap.
+1. Launch an EC2 instance.  Probably use the smaller of the ones with graphic cards.  Recommend to use spot instances since they're cheap.  Suggest using AMI: ami-cf5028a5
 2. Click the connect button in the EC2 console.  Use the ssh command they supply but change the user to 'ubuntu'.
 3. Run the following commands.  Everything that you need to download takes a bit of time, so removing dependencies where possible is a good idea. 
 
