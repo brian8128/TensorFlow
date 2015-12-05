@@ -1,13 +1,15 @@
 import tensorflow as tf
 import numpy as np
+import matplotlib.pyplot as plt
 
 from tensorflow.models.rnn import rnn_cell
 from tensorflow.models.rnn import seq2seq
 
 input_channels = output_channels = 1
-rnn_size = 20 # Number of hidden nodes
-batch_size = 5  # Number of distinct sequences in a batch
-sequence_length = 25  # Length of each sequence in the batch
+rnn_size = 8 # Number of hidden nodes
+# Large batch sizes seem to be MUCH more effective
+batch_size = 30  # Number of distinct sequences in a batch
+sequence_length = 50  # Length of each sequence in the batch
 
 
 class RegressionModel(object):
@@ -17,7 +19,10 @@ class RegressionModel(object):
         input_data - a batch of sequences to predict.  Tensor of size [batch_size, input_channels, sequence_length]
         :return: logits
         """
-        cell = rnn_cell.LSTMCell(rnn_size, input_channels, num_proj=output_channels)
+
+        cell1 = rnn_cell.LSTMCell(rnn_size, input_channels)
+        cell2 = rnn_cell.LSTMCell(rnn_size, cell1._output_size, num_proj=output_channels)
+        cell = rnn_cell.MultiRNNCell([cell1, cell2])
         # Initial state of the LSTM memory.
         state = tf.zeros([batch_size, cell.state_size])
 
@@ -54,7 +59,8 @@ class RegressionModel(object):
         return loss
 
     def train(self, loss, learning_rate):
-        # Create the gradient descent optimizer with the given learning rate.
+        # Create the optimizer with the given learning rate.
+        # Tried Adam optimizer here, for some reason it's terrible
         optimizer = tf.train.GradientDescentOptimizer(learning_rate)
 
         # Use the optimizer to apply the gradients that minimize the loss
@@ -82,15 +88,15 @@ class RegressionModel(object):
 def get_sequence(batch_sz, length):
     labels = np.zeros([batch_sz, input_channels, length + 1])
     for i in range(batch_sz):
-        labels[i,0] = np.linspace(10 * np.random.random(), 10 * np.random.random(), num=length + 1)
-    data = labels  + np.random.normal(size=[batch_sz, input_channels, length + 1]) / 20.
+        labels[i,0] = np.sin(np.linspace(10 * np.random.random(), 10 * np.random.random(), num=length + 1) * 3)
+    data = labels  + np.random.normal(size=[batch_sz, input_channels, length + 1]) / 15.
     return data[:, :, :-1], labels[:, :, 1:] # The label is the true next value in the sequence
                                  # Maybe we should give it the noisy next value to be more realistic
                                  # But we don't care because our goal is to train ANY rnn.
 
 
 def main():
-    train_steps = 5000
+    train_steps = 2500
     data_placeholder = tf.placeholder(tf.float32, shape=(batch_size, input_channels, sequence_length))
     labels_placeholder = tf.placeholder(tf.float32, shape=(batch_size, output_channels, sequence_length))
 
@@ -100,7 +106,7 @@ def main():
 
     out, states = model.inference(data_placeholder)
     loss = model.loss(out, labels_placeholder)
-    train_op = model.train(loss, 0.00005)
+    train_op = model.train(loss, 0.00003)
 
     # Create a session for running Ops on the Graph.
     sess = tf.Session()
@@ -131,14 +137,30 @@ def main():
             labels_placeholder: labels
     }
 
-    print "data", data
-    print "labels", labels
-
     vars = sess.run(out + states, feed_dict)
     out_ = vars[0:len(out)]
     states_ = vars[len(out)+1:]
-    print "out", np.array(out_)
-    print "states", np.array(states_)
+
+    d = data[0,0,:]
+    o = np.array(out_)[:, 0, 0]
+    l = labels[0,0,:]
+
+    x1 = range(d.shape[0])
+    x2 = range(1, d.shape[0] + 1)
+    plt.scatter(x1, d, c='r')
+    plt.scatter(x2, o, c='g')
+    plt.scatter(x2, l, c='b')
+    plt.show()
+
+    print "data third dim", d
+
+    print "out", o
+    # print "states", np.array(states_)
+
+    print "labels third dim", l
+
+    # TODO: When the model is trained well the output seems to correlate strongly with the labels
+    # but we're off by two.  The last output correlates with the third to last label.
 
 
 if __name__ == '__main__':
